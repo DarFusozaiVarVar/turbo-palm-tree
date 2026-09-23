@@ -1,0 +1,7 @@
+# Main
+- make small blog_item system, which reads from postgres DB and gives it into jinja2 template 
+- two docker containers one for DB, one for the web app
+- make 3 indicator presentation for optimization alg
+- Скинуть генетические алгоритмы в группу
+# Additional
+- make image_to_symbols 
