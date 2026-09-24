@@ -11,16 +11,21 @@
 </head>
 
 <body>
-  <main>
+  <header>
     <h1>Dar's Blog</h1>
+  </header>
+  <main>
+    
     <div id="blog_blocks" class="blogChoice">
-      {% for text in blog_block_list %}
-      <li class="blogBlock">
-        <p>{{ text }}</p>
-      </li>
+      {% for item in blog_block_list %}
+      <div class="blogBlock">
+        <h1>{{ item.header }}</h1>
+        <p>{{ item.text }}</p>
+      </div>
       {% endfor %}
     </div>
   </main>
+  <footer></footer>
 </body>
 
 </html>
