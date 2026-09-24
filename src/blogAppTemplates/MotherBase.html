@@ -11,6 +11,12 @@
   <body>
     <main>
         <h1>Dar's Blog</h1>  
+        <ul id="blog_blocks">
+        <li>{% for text in blog_block_list %}
+            <li><p>{{ text }}</p></li>
+          {% endfor %}
+        </li>
+        </ul>
     </main>
   </body>
 </html>

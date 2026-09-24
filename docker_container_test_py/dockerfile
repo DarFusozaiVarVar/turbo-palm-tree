@@ -1,0 +1,21 @@
+FROM ubuntu:26.10
+ENV DEBIAN_FRONTEND=noninteractive
+
+ENV PATH="/root/.local/bin:${PATH}"
+
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /docker_container_test_py
+
+COPY requirements.txt ./
+
+RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+
+COPY . .
+
+EXPOSE 8000
+
+# ENTRYPOINT ["python3"]
+CMD ["python3", "-m", "uvicorn", "simpleServer:app", "--host", "0.0.0.0", "--port", "8000"]
