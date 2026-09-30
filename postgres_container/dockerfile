@@ -1,0 +1,13 @@
+FROM postgres:18-alpine
+
+ENV POSTGRES_USER=admin
+ENV POSTGRES_PASSWORD=secretpassword
+ENV POSTGRES_DB=demo_db
+
+COPY 01-init.sql /docker-entrypoint-initdb.d/
+
+RUN apk add --no-cache postgis
+
+EXPOSE 5432
+
+VOLUME /var/lib/postgresql/18/docker
