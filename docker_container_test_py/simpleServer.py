@@ -23,7 +23,7 @@ logging.basicConfig(
     ]
 )
 
-logger = logging.getLogger(title=__name__)
+logger = logging.getLogger(name=__name__)
 
 logger.info("Приложение инициализируется...")
 
