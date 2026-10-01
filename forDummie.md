@@ -5,9 +5,14 @@
 # Проверка локально с UVICORN
 - poetry run uvicorn simpleServer:app --reload
 
+docker build -t my-custom-postgres .     
+
+docker run --name my-postgres-container -p 5433:5432 -v custom_pg_data:/var/lib/postgresql/18/docker -d my-custom-postgres:latest
+
 # psql from Docker
-- docker exec -it my-postgres-container psql -U admin -d demo_db -c "SELECT * FROM users;"
+- docker exec -it my-custom-postgres psql -U admin -d demo_db -c "SELECT * FROM users;"
 
 # For CMD 
     set PGPASSWORD=secretpassword
-    psql -h localhost -p 5432 -U admin -d demo_db -c "SELECT * FROM users;"
+    psql -h localhost -p 5433 -U admin -d demo_db -c "SELECT * FROM users;"
+

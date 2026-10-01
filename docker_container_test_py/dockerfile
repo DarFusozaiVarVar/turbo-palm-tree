@@ -14,6 +14,8 @@ WORKDIR /docker_container_test_py
 COPY requirements.txt ./
 
 RUN pip install --no-cache-dir --break-system-packages -r requirements.txt
+
+RUN mkdir -p /app/config /app/logs
     
 COPY . .
 

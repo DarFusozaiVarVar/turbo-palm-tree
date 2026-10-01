@@ -8,6 +8,6 @@ COPY 01-init.sql /docker-entrypoint-initdb.d/
 
 RUN apk add --no-cache postgis
 
-EXPOSE 5432
+EXPOSE 5433
 
 VOLUME /var/lib/postgresql/18/docker
