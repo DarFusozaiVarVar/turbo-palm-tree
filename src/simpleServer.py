@@ -1,28 +1,88 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+import uvicorn
+from fastapi.responses import HTMLResponse 
+from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, PackageLoader, FileSystemLoader, select_autoescape
+import json
+import os
+import logging
 
-jinja_env = Environment(
-    loader=FileSystemLoader("blogAppTemplates"),
-    autoescape=select_autoescape(disabled_extensions=('txt',),
-        default_for_string=True,
-        default=True,
-    )
-    )
+# Инициализация логов
+
+# CONFIG_PATH = '/app/config/config.json'
+LOG_PATH = '/app/logs/app.log'
+
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(LOG_PATH)
+    ]
+)
+
+logger = logging.getLogger(name=__name__)
+
+logger.info("Приложение инициализируется...")
+
+
+#————————————————————
+
+try:
+    jinja_env = Environment(
+        loader=FileSystemLoader("blogAppTemplates"),
+        autoescape=select_autoescape(disabled_extensions=('txt',),
+            default_for_string=True,
+            default=True,
+        )
+        )
+    logger.info("Jinja2 environment успешно загружен.")
+except Exception as e:
+    logger.critical(f"Ошибка инициализации Jinja2: {e}", exc_info=True)
 
 app = FastAPI()
 
+try:
+    app.mount("/css", StaticFiles(directory="css"), name="css")
+    logger.info("Статические файлы /css успешно смонтированы.")
+except Exception as e:
+    logger.error(f"Не удалось смонтировать папку css: {e}")
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def root():
-    template = jinja_env.get_template("MotherBase.html")
-    blog_list = ["I’m both a bit surprised and unsurprised that it’s been two years since last I posted anything on Hafuboti. I knew that I needed a break, but I had no idea that it would last as long as it has. I’m not even sure that I’ll ever return to posting as regularly as I once…",
-                       "There are times that an idea tickles me enough that I have to follow it through and make it reality. When our Children’s Librarian Jennifer told me that the new book in Aaron Reynolds’ and Peter Brown’s Creepy Tales! series was Creepy Crayon! and then showed me the cover? I knew what must be done….",
-                       "Please Note: I failed to take before photos, so you’ll need to imagine those. Yes, this post is the first of my Home Time blog, and I’m aware that this was for my office. That’s okay – this idea works well at home, too. One day, while rearranging my desk, I realized that the mugs I use…"]
-    rendered_html = template.render(blog_block_list = blog_list)
-    return rendered_html
-# {"message": "Hello World"}
+    logger.info("Получен GET-запрос на маршрут '/'")
+    json_path = "BlogListed.json"
+    
+    if not os.path.exists(json_path):
+        logger.error(f"Файл данных {json_path} не найден!")
+        raise HTTPException(status_code=500, detail="Internal Server Error: Data missing")
+    
+    try:
+        template = jinja_env.get_template("MotherBase.html")
+        
+        with open(json_path, "r", encoding="utf-8") as file:
+            blog_dict = json.load(file)
+            
+        blocks_count = len(blog_dict.get("BlogListedBlocks", []))
+        logger.info(f"Успешно прочитано блоков из JSON: {blocks_count}")
+        
+        rendered_html = template.render(blog_block_list=blog_dict["BlogListedBlocks"])
+        logger.info("Шаблон MotherBase.html успешно отрендерен.")
+        return rendered_html
+        
+    except Exception as e:
+        logger.error(f"Ошибка при обработке корневого маршрута: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @app.get("/blog")
 async def blog_block_get(block_id: int):
-    return block_id
+    try:
+        return block_id
+    except Exception as e:
+        logger.error(f"Ошибка при обработке маршрута блога: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
+# if __name__ == "__main__":
+#     uvicorn.run("main:app", workers=2)

@@ -1,6 +1,5 @@
 # Main
 - make small blog_item system, which reads from postgres DB and gives it into jinja2 template 
-- two docker containers one for DB, one for the web app
 # Additional
 - make image_to_symbols
 - Сравнить Холта, Холта-Муира и сдвижку
