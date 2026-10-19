@@ -125,6 +125,21 @@ MarkupSafe = ">=2.0"
 i18n = ["Babel (>=2.7)"]
 
 [[package]]
+name = "jinja2-fragments"
+version = "1.12.0"
+description = "Render Jinja2 template block as HTML page fragments on Python web frameworks."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "jinja2_fragments-1.12.0-py3-none-any.whl", hash = "sha256:3267924edd358104056e7416507b1e101be5fc9ced771473663ffbec8883d2f3"},
+    {file = "jinja2_fragments-1.12.0.tar.gz", hash = "sha256:a24f8faf29be86f309edeb500e6709d93c3068d023b3dd79aefd2b16a4179e68"},
+]
+
+[package.dependencies]
+jinja2 = ">=3.1.0,<4.0.0"
+
+[[package]]
 name = "markupsafe"
 version = "3.0.3"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -663,4 +678,4 @@ standard = ["httptools (>=0.8.0)", "python-dotenv (>=0.13)", "pyyaml (>=5.1)", "
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13"
-content-hash = "389c17dabcc565dbfb18d969bb8d3c4030a2ba33e531d3ff568e49e6a4c0e363"
+content-hash = "03e583655c12eb08960d73c251109a6ff34e8d29a6e9447217424c2dce0fbe98"

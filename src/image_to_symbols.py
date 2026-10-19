@@ -2,6 +2,7 @@ import numpy as np
 import io
 import base64
 import os 
+import zlib
 
 class ImageToASCII:
 
@@ -92,67 +93,196 @@ class ImageToASCII:
                 "data" : chunk
             }
 
-        return chunk_status, chunk_name.decode('utf-8'), chunk_data_readable
+        return chunk_status, chunk_name.decode('utf-8', errors='ignore'), chunk_data_readable
 
-    def idat_process(self, ihdr):
-        return 0
+    def get_bytes_per_pixel(self, bit_depth, color_type):
+        channels_map = {
+        0: 1,  # Grayscale (1 канал: Серый)
+        2: 3,  # Truecolor / RGB (3 канала: R, G, B)
+        3: 1,  # Indexed color / Palette (1 канал: Индекс в палитре)
+        4: 2,  # Grayscale + Alpha (2 канала: Серый, Альфа)
+        6: 4   # Truecolor + Alpha / RGBA (4 канала: R, G, B, A)
+    }
+        if color_type not in channels_map:
+            raise ValueError(f"Невалидный Color Type: {color_type}")
+        
+        channels = channels_map[color_type]
+
+        bits_per_pixel = channels * bit_depth
+
+        bytes_per_pixel = (bits_per_pixel + 7) // 8
+
+        return bytes_per_pixel
+
+    def pixel_to_char(self, r, g, b, a):
+        grad_str = "@\\$B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^` "
+        if a < 128:
+            return grad_str[-1]
+
+        luma = int(0.299 * r + 0.587 * g + 0.114 * b)
+
+        char_index = (luma * (len(grad_str) - 1)) // 255
+
+        return grad_str[char_index]
+
+    def render_png(self, data:str, ihdr:dict, theme_name:str) -> str:
+        width = ihdr["width"]
+        length = ihdr["length"]
+        theme_name = theme_name.lower()
+        themes = {
+            "cyberpunk": ("#00060e","#9a9f17","#fee801", "#54c1e6", "#39c4b6")
+        }
+        if ihdr["CompressionMethod"] == 0:
+            decompressed_data = zlib.decompress(data)
+        else: return "I DONT KNOW WHAT TO DO WITH THIS!"
+
+        bytes_per_pixel = self.get_bytes_per_pixel(ihdr["bitDepth"], ihdr["ColorType"])
+
+        stride = (width * bytes_per_pixel) + 1
+
+        recon_stride = width * bytes_per_pixel
+        recon_buffer = bytearray(width * length * bytes_per_pixel)
+        #Дефильтрация
+        for y in range(length):
+            raw_line_start = y * stride
+            filter_type = decompressed_data[raw_line_start]
+            raw_pixels = decompressed_data[raw_line_start + 1 : raw_line_start + stride]
+            recon_line_start = y * recon_stride
+            
+            for x_byte in range(recon_stride):
+                current_pos = recon_line_start + x_byte
+                
+                # определение соседей в одномерном байт-массиве
+                a = recon_buffer[current_pos - bytes_per_pixel] if x_byte >= bytes_per_pixel else 0
+                b = recon_buffer[current_pos - recon_stride] if y > 0 else 0
+                c = recon_buffer[current_pos - recon_stride - bytes_per_pixel] if (y > 0 and x_byte >= bytes_per_pixel) else 0
+
+                x = raw_pixels[x_byte]
+
+                if filter_type == 0:    # None
+                    recon_value = x
+                elif filter_type == 1:  # Sub
+                    recon_value = x + a
+                elif filter_type == 2:  # Up
+                    recon_value = x + b
+                elif filter_type == 3:  # Average
+                    recon_value = x + (a + b) // 2
+                elif filter_type == 4:  # Paeth
+                    p = a + b - c
+                    pa = abs(p - a)
+                    pb = abs(p - b)
+                    pc = abs(p - c)
+                    
+                    if pa <= pb and pa <= pc:
+                        pr = a
+                    elif pb <= pc:
+                        pr = b
+                    else:
+                        pr = c
+                    recon_value = x + pr
+                else:
+                    raise ValueError(f"Неизвестный тип фильтра: {filter_type}")
+
+                recon_buffer[current_pos] = recon_value & 0xFF
+        #Рендер 
+        lines_list = []
+        for y in range(length):
+            line_chars = []
+            for x in range(width):
+                pixel_index = (y * recon_stride) + (x * bytes_per_pixel)
+                
+                color_type = ihdr["ColorType"]
+                
+                # Инициализируем дефолты
+                r = g = b = 0
+                a = 255
+
+                if color_type == 0:    # Grayscale
+                    r = g = b = recon_buffer[pixel_index]
+                elif color_type == 2:  # RGB
+                    r = recon_buffer[pixel_index]
+                    g = recon_buffer[pixel_index + 1]
+                    b = recon_buffer[pixel_index + 2]
+                elif color_type == 4:  # Grayscale + Alpha
+                    r = g = b = recon_buffer[pixel_index]
+                    a = recon_buffer[pixel_index + 1]
+                elif color_type == 6:  # RGBA
+                    r = recon_buffer[pixel_index]
+                    g = recon_buffer[pixel_index + 1]
+                    b = recon_buffer[pixel_index + 2]
+                    a = recon_buffer[pixel_index + 3]
+                elif color_type == 3:  # Indexed (Палитра)
+                    # Для палитры нужен чанк PLTE, пока ставим заглушку серого
+                    r = g = b = recon_buffer[pixel_index]
+
+                char = self.pixel_to_char(r, g, b, a)
+                # Дублируем символ, так как консольные шрифты вытянуты по вертикали
+                line_chars.append(char * 2)
+            
+            lines_list.append("".join(line_chars))
+
+        return "\n".join(lines_list)
+        
     
     def _processPNG(self):
         nessesary_chunks = dict()
         info_chunks = dict()
+        idat_accumulator = b""
+        ihdr = b""
         
         with open(self.path, 'rb') as file:
             file.seek(8)
-            len = int.from_bytes(file.read(4), 'big')
-            name = file.read(4)
-            # file.seek(4, io.SEEK_CUR) 
-            while b'IHDR' != name:
-                data = file.read(len)
+            while True:
+                # Читаем длину чанка
+                len_bytes = file.read(4)
+                if not len_bytes or len(len_bytes) < 4:
+                    break  # Защита от бесконечного цикла: файл неожиданно закончился
+                    
+                chunk_len = int.from_bytes(len_bytes, 'big')
+                
+                # Читаем имя чанка
+                name_bytes = file.read(4)
+                if not name_bytes or len(name_bytes) < 4:
+                    break  # Защита от бесконечного цикла
+                    
+                # Читаем данные чанка и CRC
+                data = file.read(chunk_len)
                 crc = file.read(4)
-                ch_stat, ch_name, ch_data = self.chunk_read(name, data, crc)
-                if ch_stat:
-                    nessesary_chunks[ch_name] = ch_data
+                
+                # Логика распределения чанков
+                if name_bytes == b'IHDR':
+                    ihdr = data
+                    # Для удобства парсим заголовки
+                    ihdr_readable = {
+                        "width": int.from_bytes(ihdr[0:4], 'big'),
+                        "length": int.from_bytes(ihdr[4:8], 'big'),
+                        "bitDepth": ihdr[8],
+                        "ColorType": ihdr[9],
+                        "CompressionMethod": ihdr[10],
+                        "FilterMethod": ihdr[11],
+                        "InterlaceMethod": ihdr[12]
+                    }
+                elif name_bytes == b'IDAT':
+                    # Накапливаем данные всех IDAT-мешков
+                    idat_accumulator += data
+                elif name_bytes == b'IEND':
+                    break  # Финальный чанк, успешно выходим из цикла
                 else:
-                    info_chunks[ch_name] = ch_data
-                len = file.read(4)
-                name = file.read(4)
-            print(len)
-            ihdr = file.read(len)
-            print(ihdr)
-            ihdr_readable = {
-                "width" : int.from_bytes(ihdr[0:4], 'big'),
-                "length": int.from_bytes(ihdr[4:8], 'big'),
-                "bitDepth": ihdr[8],
-                "ColorType": ihdr[9],
-                "CompressionMethod": ihdr[10],
-                "FilterMethod": ihdr[11],
-                "InterlaceMethod": ihdr[12]
-            }
+                    # Все остальные чанки (PLTE, tEXt, gAMA и т.д.) отправляем в chunk_read
+                    ch_stat, ch_name, ch_data = self.chunk_read(name_bytes, data, crc)
+                    if ch_stat:
+                        nessesary_chunks[ch_name] = ch_data
+                    else:
+                        info_chunks[ch_name] = ch_data
 
-            len = int.from_bytes(file.read(4), 'big')
-            name = file.read(4)
+            # Проверяем, что мы нашли всё необходимое перед рендером
+            if not ihdr or not idat_accumulator:
+                raise ValueError("Поврежденный PNG: отсутствуют чанки IHDR или IDAT")
 
-            while b'IDAT' != name:
-                data = file.read(len)
-                crc = file.read(4)
-                self.chunk_read(name, data, crc)
-                len = file.read(4)
-                name = file.read(4)
-            idat = file.read(4)
-            idat.read(len)
-            idat_readable = self.idat_process(idat, ihdr)
-             
-            len = int.from_bytes(file.read(4), 'big')
-            name = file.read(4)
-
-            while b'IEND' != name:
-                data = file.read(len)
-                crc = file.read(4)
-                self.chunk_read(name, data, crc)
-                len = file.read(4)
-                name = file.read(4)
-            iend = file.read(4)
-        return ihdr_readable
+            # Передаем ПОЛНЫЙ массив сжатых данных в ваш рендер
+            idat_render = self.render_png(idat_accumulator, ihdr_readable, "cyberpunk")
+        
+        return idat_render
     
     def _processGIF(self):
         return "GIF processed"
@@ -201,11 +331,15 @@ class ImageToASCII:
 
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
-file = os.path.join(file_dir, "PNG_transparency_demonstration_1.png")
+file = os.path.join(file_dir, "cat_PNG115421HALF.png")
 # raw_bytes = ImageToASCII.image_read_as_file(file)
 work_file = ImageToASCII(file)
+print(work_file.path)
 print(work_file.file_format)
-print(work_file.process_pipeline())
+# print(work_file.process_pipeline())
+output = os.path.join(file_dir, "ASCII_cat.txt")
+with open(output, "w") as file:
+    file.write(work_file.process_pipeline())
 # print("Raw Bytes (First 100 chars):", raw_bytes[:100])
 # b64_text_string = base64.b64encode(raw_bytes).decode('utf-8')
 # print("Safe Text String (First 100 chars):", b64_text_string[:100])

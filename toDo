@@ -1,5 +1,8 @@
 # Main
 - make small blog_item system, which reads from postgres DB and gives it into jinja2 template 
+- Доделать матрицу рисков
+- резюме подправить и отправить в дом ру
 # Additional
-- make image_to_symbols
+- understand whats wrong with pngToSymbols
 - Сравнить Холта, Холта-Муира и сдвижку
+- уменьшить формат рендера в 2-2,5 раза|

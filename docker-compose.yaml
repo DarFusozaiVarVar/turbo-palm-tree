@@ -1,0 +1,21 @@
+services:
+  database:
+    build: ../postgres_container
+    # image: postgres:18-alpine
+    # volumes: 
+    #   - var/lib/postgresql/18/docker
+    # environment:
+    #   POSTGRES_USER: admin
+    #   POSTGRES_PASSWORD: secretpassword
+    #   POSTGRES_DB: demo_db
+  http-server:
+    build: .
+    depends_on: 
+      - database
+      - proxy
+  proxy:
+    image: haproxy:3.4.4
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+    ports:
+      - "8000:8000"

@@ -15,7 +15,11 @@
     <h1>Dar's Blog</h1>
   </header>
   <main>
-    
+    <!-- <ul class="menuMain">
+      {% for menu_object in menu_list %}
+        <li class="menuBlock"><a href="{{ url_for('main') }}">{{menu_object.name}}</li>
+      {% endfor %}
+    </ul> -->
     <div id="blog_blocks" class="blogChoice">
       {% for item in blog_block_list %}
       <div class="blogBlock">
@@ -23,6 +27,15 @@
         <p>{{ item.text }}</p>
       </div>
       {% endfor %}
+    </div>
+    <div id="imageOfTheDay">
+      {% block image_day_block %}
+    {% if potd_pre_rendered %}
+      {{ potd_pre_rendered | safe }}
+    {% elif imageoftheday %}
+      {% include imageoftheday %}
+    {% endif %}
+  {% endblock %}
     </div>
   </main>
   <footer></footer>
