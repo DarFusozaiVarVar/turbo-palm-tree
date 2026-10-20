@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jinja2_fragments import render_block
+from markupsafe import Markup
 import json
 import os
 import logging
@@ -114,10 +115,11 @@ async def root():
         img_response = await render_imgOfTheday(image_path=default_image, caption="This is the picture of the cat!")
 
         potd_html_string = img_response.body.decode("utf-8")
+        safe_potd_html = Markup(potd_html_string)
         
         html_content = template.render(
             blog_block_list=blog_dict["BlogListedBlocks"],
-            potd_pre_rendered=potd_html_string
+            potd_pre_rendered=safe_potd_html  
         )
         logger.info("Шаблон MotherBase.html успешно отрендерен.")
         return HTMLResponse(content = html_content)

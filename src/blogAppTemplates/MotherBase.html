@@ -31,7 +31,7 @@
     <div id="imageOfTheDay">
       {% block image_day_block %}
     {% if potd_pre_rendered %}
-      {{ potd_pre_rendered | safe }}
+      {{ potd_pre_rendered }}
     {% elif imageoftheday %}
       {% include imageoftheday %}
     {% endif %}
