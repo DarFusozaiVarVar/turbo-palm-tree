@@ -1,0 +1,6 @@
+{% macro render_image_of_the_day(image_path, caption="Default text")%}
+<div class="potd-wrapper">
+    <img src="{{ url_for('css', path=image_path) }}" alt="{{ caption }}" class="img-fluid">
+    <p class="caption-text">{{ caption }}</p>
+</div>
+{% endmacro %}

@@ -1,15 +1,16 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 import uvicorn
 from fastapi.responses import HTMLResponse 
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from jinja2_fragments import render_block
-from markupsafe import Markup
+from markupsafe import Markup, escape
 import json
 import os
 import logging
 from pathlib import Path
+import anyio
 
 # Инициализация логов
 
@@ -42,6 +43,7 @@ try:
             default=True,
         )
         )
+    templates = Jinja2Templates(env=jinja_env)
     logger.info("Jinja2 environment успешно загружен.")
 except Exception as e:
     logger.critical(f"Ошибка инициализации Jinja2: {e}", exc_info=True)
@@ -54,11 +56,10 @@ try:
 except Exception as e:
     logger.error(f"Не удалось смонтировать папку css: {e}")
 
-# Will need to improve and add dynamic load of imagew from google, with small caption
-@app.get("/imgotday", response_class=HTMLResponse)
-async def render_imgOfTheday(image_path, caption):
-
-    logger.info("Получен запрос на рендер изображения дня.")
+# Updates the image of the day status on servers, if Bloom Filter says this picture was already, let another picture take the role
+# also don't forget to connect with symbol picture builder to make cool page render effect I guess?
+async def imgOfTheday_update(image_path, caption):
+    logger.info("Получен запрос на изменение изображения дня.")
 
     try:
         a = Path(image_path)
@@ -68,42 +69,30 @@ async def render_imgOfTheday(image_path, caption):
     except FileNotFoundError:
         logger.info("Image file does not exist")
 
-    context_data = {
-        "imageoftheday": "POTD.html",
-        "content": {
-            "url": image_path,
-            "caption": caption
-        }
-    }
 
     if not os.path.exists(image_path):
         logger.error(f"Файл данных {image_path} не найден!")
         raise HTTPException(status_code=500, detail="Internal Server Error: Data missing")
     
     try:
-        block_content = render_block(
-            environment = jinja_env,
-            template_name="MotherBase.html",
-            block_name="image_day_block",
-            **context_data
-        )
-        return HTMLResponse(content=block_content)
+        return None
 
     except Exception as e:
         logger.error(f"Ошибка при обработке  запроса на рендер изображения дня: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error") 
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
+async def root(request: Request):
     logger.info("Получен GET-запрос на маршрут '/'")
     json_path = "BlogListed.json"
+    content = {}
     
     if not os.path.exists(json_path):
         logger.error(f"Файл данных {json_path} не найден!")
         raise HTTPException(status_code=500, detail="Internal Server Error: Data missing")
     
     try:
-        template = jinja_env.get_template("MotherBase.html")
+        #template = jinja_env.get_template("MotherBase.html")
         
         with open(json_path, "r", encoding="utf-8") as file:
             blog_dict = json.load(file)
@@ -111,18 +100,12 @@ async def root():
         blocks_count = len(blog_dict.get("BlogListedBlocks", []))
         logger.info(f"Успешно прочитано блоков из JSON: {blocks_count}")
 
-        default_image = "css/cat_PNG115421.png" 
-        img_response = await render_imgOfTheday(image_path=default_image, caption="This is the picture of the cat!")
-
-        potd_html_string = img_response.body.decode("utf-8")
-        safe_potd_html = Markup(potd_html_string)
-        
-        html_content = template.render(
-            blog_block_list=blog_dict["BlogListedBlocks"],
-            potd_pre_rendered=safe_potd_html  
-        )
-        logger.info("Шаблон MotherBase.html успешно отрендерен.")
-        return HTMLResponse(content = html_content)
+        return templates.TemplateResponse(request=request, name="MotherBase.html", 
+                                          context={"blog_block_list": blog_dict["BlogListedBlocks"],
+                                                   "current_image": blog_dict.get("ImageOfTheDay", "cat_PNG115421.png"),
+                                                    "current_caption": blog_dict.get("ImageCaption", "This is the picture of the cat!")
+                                                    }
+                                            )
         
     except Exception as e:
         logger.error(f"Ошибка при обработке корневого маршрута: {e}", exc_info=True)

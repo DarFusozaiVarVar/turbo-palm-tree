@@ -11,6 +11,8 @@
 </head>
 
 <body>
+  {% import "macros/imageOfTheDay.html" as img_tools with context%}
+  {% import "macros/blog.html" as blog_tools with context%}
   <header>
     <h1>Dar's Blog</h1>
   </header>
@@ -20,22 +22,12 @@
         <li class="menuBlock"><a href="{{ url_for('main') }}">{{menu_object.name}}</li>
       {% endfor %}
     </ul> -->
-    <div id="blog_blocks" class="blogChoice">
-      {% for item in blog_block_list %}
-      <div class="blogBlock">
-        <h1>{{ item.header }}</h1>
-        <p>{{ item.text }}</p>
-      </div>
-      {% endfor %}
+    <div id="blogBlocksWrapper">
+      {{ blog_tools.build_blog(blog_block_list) }}
     </div>
-    <div id="imageOfTheDay">
-      {% block image_day_block %}
-    {% if potd_pre_rendered %}
-      {{ potd_pre_rendered }}
-    {% elif imageoftheday %}
-      {% include imageoftheday %}
-    {% endif %}
-  {% endblock %}
+    
+    <div id="imageOfTheDayWrapper">
+      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
     </div>
   </main>
   <footer></footer>

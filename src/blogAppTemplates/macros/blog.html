@@ -1,0 +1,10 @@
+{% macro build_blog(blog_block_list) %}
+<div id="blog_blocks" class="blogChoice">
+        {% for item in blog_block_list %}
+        <div class="blogBlock">
+          <h1>{{ item.header }}</h1>
+          <p>{{ item.text }}</p>
+        </div>
+        {% endfor %}
+</div>
+{% endmacro %}
