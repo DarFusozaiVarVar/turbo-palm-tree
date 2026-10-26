@@ -1,0 +1,84 @@
+.mainMenuBlock{
+    --size: 500px;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background: transparent;
+    position: relative;
+    top: 50%;
+    left:-250px;
+    /* 1. Define the base solid shape AND the cutout circle shape */
+    /* --base-circle: radial-gradient(circle, rgb(0, 0, 0) 100%, transparent 100%);
+    --cutout-hole: radial-gradient(circle 50px at 70% 30%, transparent 99%, black 100%); */
+
+    /* 2. Apply both mask layers to the element */
+    /* -webkit-mask-image: var(--cutout-hole), var(--base-circle);
+    mask-image: var(--cutout-hole), var(--base-circle); */
+
+    /* 3. Cross-browser masking syntax for subtraction */
+    /* -webkit-mask-composite: destination-in; For Chrome, Safari, Edge
+    mask-composite: intersect;               Modern standard (Firefox) */
+}
+
+.bulletItem{
+    --sizea: 50px;
+    --radius: 65px;
+    background: rgb(251, 255, 0);
+    border-radius: 50%;
+    width: var(--sizea);
+    height: var(--sizea);
+    
+    position: absolute; 
+    
+    left: calc(50% + var(--radius) * cos(var(--angle)) - (var(--sizea) / 2));
+    top: calc(50% + var(--radius) * sin(var(--angle)) - (var(--sizea) / 2));
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#drum {
+    position: absolute;
+    --sizeb: 200px;
+    top: 10px;
+    left: 10px;
+    width: var(--sizeb); 
+    height: calc(var(--sizeb) * 1.15);
+    background-color: green;
+    
+    /* Возвращаем четкую форму шестиугольника */
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    
+    --r: 20px; 
+    --mask-r: calc(var(--r) + 2px); 
+
+    /* Основа — сплошной залив, а круги плавно размываем на стыке */
+    mask-image: 
+        linear-gradient(#fff, #fff),
+        radial-gradient(var(--mask-r) at 50% 0%, #000 99%, transparent 101%),
+        radial-gradient(var(--mask-r) at 100% 25%, #000 99%, transparent 101%),
+        radial-gradient(var(--mask-r) at 100% 75%, #000 99%, transparent 101%),
+        radial-gradient(var(--mask-r) at 50% 100%, #000 99%, transparent 101%),
+        radial-gradient(var(--mask-r) at 0% 75%, #000 99%, transparent 101%),
+        radial-gradient(var(--mask-r) at 0% 25%, #000 99%, transparent 101%);
+
+    mask-composite: exclude;
+    -webkit-mask-composite: source-over, destination-out, destination-out, destination-out, destination-out, destination-out, destination-out;
+}
+
+@keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    20%{
+      top:-5px;
+    }
+    50%{
+      top: 5px;
+    }
+    100% {
+      left: 100px;
+      transform: rotate(360deg);
+    }
+}
