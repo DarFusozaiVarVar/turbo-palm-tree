@@ -1,12 +1,14 @@
 .mainMenuBlock{
     --size: 500px;
-    width: var(--size);
-    height: var(--size);
-    border-radius: 50%;
-    background: transparent;
-    position: relative;
-    top: 50%;
-    left:-250px;
+    width: calc(var(--size)*2);
+    height: 100%;
+    min-height:100%;
+    /* border-radius: 50%; */
+    background: red;
+    position: absolute;
+    top: 0%;
+    left: calc(-1 * var(--size)/2);
+    align-items: center;
     /* 1. Define the base solid shape AND the cutout circle shape */
     /* --base-circle: radial-gradient(circle, rgb(0, 0, 0) 100%, transparent 100%);
     --cutout-hole: radial-gradient(circle 50px at 70% 30%, transparent 99%, black 100%); */
@@ -21,8 +23,8 @@
 }
 
 .bulletItem{
-    --sizea: 50px;
-    --radius: 65px;
+    --sizea: 85px;
+    --radius: 135px;
     background: rgb(251, 255, 0);
     border-radius: 50%;
     width: var(--sizea);
@@ -39,10 +41,10 @@
 }
 
 #drum {
-    position: absolute;
-    --sizeb: 200px;
-    top: 10px;
-    left: 10px;
+    position: sticky;
+    --sizeb: 400px;
+    top: 50%;
+    left: calc(-1 * var(--sizeb));
     width: var(--sizeb); 
     height: calc(var(--sizeb) * 1.15);
     background-color: green;
@@ -50,7 +52,7 @@
     /* Возвращаем четкую форму шестиугольника */
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
     
-    --r: 20px; 
+    --r: 50px; 
     --mask-r: calc(var(--r) + 2px); 
 
     /* Основа — сплошной залив, а круги плавно размываем на стыке */
@@ -65,6 +67,9 @@
 
     mask-composite: exclude;
     -webkit-mask-composite: source-over, destination-out, destination-out, destination-out, destination-out, destination-out, destination-out;
+
+    animation: spin 1s linear;
+    animation-fill-mode: both;
 }
 
 @keyframes spin {
@@ -72,12 +77,13 @@
       transform: rotate(0deg);
     }
     20%{
-      top:-5px;
+      top: 25%;
     }
     50%{
-      top: 5px;
+      top: 35%;
     }
     100% {
+      top: 50%;
       left: 100px;
       transform: rotate(360deg);
     }

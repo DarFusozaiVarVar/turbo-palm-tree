@@ -22,7 +22,7 @@
         <li class="menuBlock"><a href="{{ url_for('main') }}">{{menu_object.name}}</li>
       {% endfor %}
     </ul> -->
-    <div class="menuMouseSensor">
+    
         <div class="mainMenuBlock">
             <div id="drum">
                 <div class="bulletItem" style="--angle: 0deg;">1</div>
@@ -32,12 +32,20 @@
                 <div class="bulletItem" style="--angle: 240deg;">5</div>
                 <div class="bulletItem" style="--angle: 300deg;">6</div>
             </div>
-        </div>
     </div>
     <div id="blogBlocksWrapper">
       {{ blog_tools.build_blog(blog_block_list) }}
     </div>
     
+    <div id="imageOfTheDayWrapper">
+      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
+    </div>
+    <div id="imageOfTheDayWrapper">
+      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
+    </div>
+    <div id="imageOfTheDayWrapper">
+      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
+    </div>
     <div id="imageOfTheDayWrapper">
       {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
     </div>
