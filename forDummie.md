@@ -17,3 +17,6 @@ docker run --name my-postgres-container -p 5433:5432 -v custom_pg_data:/var/lib/
     set PGPASSWORD=secretpassword
     psql -h localhost -p 5433 -U admin -d demo_db -c "SELECT * FROM users;"
 
+# Where could I find volumes in docker
+    \\wsl.localhost\docker-desktop\mnt\docker-desktop-disk\data\docker\volumes 
+

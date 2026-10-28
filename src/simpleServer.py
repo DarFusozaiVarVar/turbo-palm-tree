@@ -10,12 +10,19 @@ import json
 import os
 import logging
 from pathlib import Path
+from dotenv import dotenv_values
 import anyio
 
-# Инициализация логов
-
+# Инициализация среды
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dotenv_path = os.path.join(base_dir, ".env.secrets")
+config = dotenv_values(dotenv_path)
 # CONFIG_PATH = '/app/config/config.json'
-LOG_PATH = '/app/logs/app.log'
+POSTGRES_USER = config["POSTGRES_USER"]
+POSTGRES_PASSWORD = config["POSTGRES_PASSWORD"]
+POSTGRES_DB = config["POSTGRES_DB"]
+LOG_PATH = config["LOG_PATH"]
+CONFIG_PATH = config["CONFIG_PATH"]
 
 os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
 

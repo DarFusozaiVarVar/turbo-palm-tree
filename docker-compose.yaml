@@ -1,21 +1,44 @@
 services:
   database:
-    build: ../postgres_container
-    # image: postgres:18-alpine
-    # volumes: 
-    #   - var/lib/postgresql/18/docker
-    # environment:
-    #   POSTGRES_USER: admin
-    #   POSTGRES_PASSWORD: secretpassword
-    #   POSTGRES_DB: demo_db
-  http-server:
-    build: .
+    # build: ../postgres_container
+    image: postgres:17-alpine
+    volumes: 
+      - ./postgres_container/01-init.sql:/docker-entrypoint-initdb.d/01-init.sql
+      -  db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./src/.env.secrets
+  http-server-1:
+    build: ./src
     depends_on: 
       - database
-      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000\")'"]
+      interval: 5s
+      retries: 10
+      start_period: 4s
+      
+  http-server-2:
+    build: ./src
+    depends_on: 
+      - database
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000\")'"]
+      interval: 5s
+      retries: 10
+      start_period: 4s
   proxy:
     image: haproxy:3.4.4
     volumes:
-      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
-      - "8000:8000"
+      - "8080:8000"
+    depends_on:
+      http-server-1:
+      # ждём статуса healthy от обоих серверов
+        condition: service_healthy
+      http-server-2:
+        condition: service_healthy
+volumes:
+  db_data:
