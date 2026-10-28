@@ -20,3 +20,10 @@ docker run --name my-postgres-container -p 5433:5432 -v custom_pg_data:/var/lib/
 # Where could I find volumes in docker
     \\wsl.localhost\docker-desktop\mnt\docker-desktop-disk\data\docker\volumes 
 
+# for postgres connect pgadmin in docker 
+Host name/address:    [Имя_сервиса_из_compose]
+Port:                 5432
+Maintenance database: demo_db
+Username:             admin
+Password:             [Ваш_пароль]
+
