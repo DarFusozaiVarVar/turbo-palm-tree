@@ -38,6 +38,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    
+    /* bullet symbol from bullet.svg, sized to exactly fill the 85px circle */
+    background-image: url('bullet.svg');
+    background-size: 250px 250px;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 #drum {
@@ -49,24 +55,16 @@
     height: calc(var(--sizeb) * 1.15);
     background-color: green;
     
-    /* Возвращаем четкую форму шестиугольника */
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    
-    --r: 50px; 
-    --mask-r: calc(var(--r) + 2px); 
-
-    /* Основа — сплошной залив, а круги плавно размываем на стыке */
-    mask-image: 
-        linear-gradient(#fff, #fff),
-        radial-gradient(var(--mask-r) at 50% 0%, #000 99%, transparent 101%),
-        radial-gradient(var(--mask-r) at 100% 25%, #000 99%, transparent 101%),
-        radial-gradient(var(--mask-r) at 100% 75%, #000 99%, transparent 101%),
-        radial-gradient(var(--mask-r) at 50% 100%, #000 99%, transparent 101%),
-        radial-gradient(var(--mask-r) at 0% 75%, #000 99%, transparent 101%),
-        radial-gradient(var(--mask-r) at 0% 25%, #000 99%, transparent 101%);
-
-    mask-composite: exclude;
-    -webkit-mask-composite: source-over, destination-out, destination-out, destination-out, destination-out, destination-out, destination-out;
+    /* Форма шестигранника с вырезами под патроны берётся целиком из SVG-маски
+       (clean edges, никаких ореолов от градиентных слоёв).
+       Вырезы: r = 52px (--r 50px + 2px), радиус зашит в drum_mask.svg. */
+    mask-image: url('drum_mask.svg');
+    -webkit-mask-image: url('drum_mask.svg');
+    mask-size: 100% 100%;
+    -webkit-mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+    -webkit-mask-repeat: no-repeat;
+    mask-mode: alpha;
 
     animation: spin 1s linear;
     animation-fill-mode: both;

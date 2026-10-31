@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="460" viewBox="0 0 400 460">
+  <!-- #drum mask. ViewBox maps 1:1 onto the element (400 px by 460 px).
+       Base shape: hexagon with 6 circular cutouts (r = 52 px) at each vertex:
+       (200,0) (400,115) (400,345) (200,460) (0,345) (0,115).
+       fill-rule="evenodd" punches the circles out of the hexagon, and the
+       internal clipPath trims the circle parts that stick out past the edges
+       (they would otherwise render as filled lobes outside the hexagon).
+       NOTE: keep this XML comment free of double hyphens, or the SVG will not parse. -->
+  <defs>
+    <clipPath id="hexClip">
+      <polygon points="200,0 400,115 400,345 200,460 0,345 0,115"/>
+    </clipPath>
+  </defs>
+  <path
+    clip-path="url(#hexClip)"
+    fill="#ffffff"
+    fill-rule="evenodd"
+    d="
+      M 200 0 L 400 115 L 400 345 L 200 460 L 0 345 L 0 115 Z
+      M 252 0   A 52 52 0 1 0 148 0   A 52 52 0 1 0 252 0   Z
+      M 452 115 A 52 52 0 1 0 348 115 A 52 52 0 1 0 452 115 Z
+      M 452 345 A 52 52 0 1 0 348 345 A 52 52 0 1 0 452 345 Z
+      M 252 460 A 52 52 0 1 0 148 460 A 52 52 0 1 0 252 460 Z
+      M 52 345  A 52 52 0 1 0 -52 345  A 52 52 0 1 0 52 345  Z
+      M 52 115  A 52 52 0 1 0 -52 115  A 52 52 0 1 0 52 115  Z"
+  />
+</svg>

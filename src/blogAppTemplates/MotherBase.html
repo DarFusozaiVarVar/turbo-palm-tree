@@ -13,39 +13,21 @@
 <body>
   {% import "macros/imageOfTheDay.html" as img_tools with context%}
   {% import "macros/blog.html" as blog_tools with context%}
+  {% import "macros/drum.html" as drum_tools with context%}
   <header>
     <h1>Dar's Blog</h1>
   </header>
   <main>
+    {{ drum_tools.render_drum() }}
     <!-- <ul class="menuMain">
       {% for menu_object in menu_list %}
         <li class="menuBlock"><a href="{{ url_for('main') }}">{{menu_object.name}}</li>
-      {% endfor %}
-    </ul> -->
-    
-        <div class="mainMenuBlock">
-            <div id="drum">
-                <div class="bulletItem" style="--angle: 0deg;">1</div>
-                <div class="bulletItem" style="--angle: 60deg;">2</div>
-                <div class="bulletItem" style="--angle: 120deg;">3</div>
-                <div class="bulletItem" style="--angle: 180deg;">4</div>
-                <div class="bulletItem" style="--angle: 240deg;">5</div>
-                <div class="bulletItem" style="--angle: 300deg;">6</div>
-            </div>
-    </div>
+      {% endfor %} -->
+    </ul>
     <div id="blogBlocksWrapper">
       {{ blog_tools.build_blog(blog_block_list) }}
     </div>
     
-    <div id="imageOfTheDayWrapper">
-      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
-    </div>
-    <div id="imageOfTheDayWrapper">
-      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
-    </div>
-    <div id="imageOfTheDayWrapper">
-      {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
-    </div>
     <div id="imageOfTheDayWrapper">
       {{ img_tools.render_image_of_the_day(current_image, current_caption) }}
     </div>
