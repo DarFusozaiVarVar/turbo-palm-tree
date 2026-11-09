@@ -1,37 +1,60 @@
 import json
 import logging
 import os
+from datetime import datetime
 from pathlib import Path
 
-# from dotenv import dotenv_values
-from fastapi import FastAPI, HTTPException, Request
+from dotenv import dotenv_values
+from urllib.parse import quote_plus
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from sqlalchemy import TIMESTAMP, DateTime, Integer, String, func, select
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Инициализация среды
-# base_dir = os.path.dirname(os.path.abspath(__file__))
-# dotenv_path = os.path.join(base_dir, ".env.secrets")
-# config = dotenv_values(dotenv_path)
-# CONFIG_PATH = '/app/config/config.json'
-# POSTGRES_USER = config["POSTGRES_USER"]
-# POSTGRES_PASSWORD = config["POSTGRES_PASSWORD"]
-# POSTGRES_DB = config["POSTGRES_DB"]
-# LOG_PATH = config["LOG_PATH"]
-# CONFIG_PATH = config["CONFIG_PATH"]
+base_dir = os.path.dirname(os.path.abspath(__file__))
+dotenv_path = os.path.join(base_dir, ".env.secrets")
+config = dotenv_values(dotenv_path)
+CONFIG_PATH = '/app/config/config.json'
+POSTGRES_USER = config["POSTGRES_USER"]
+POSTGRES_PASSWORD = config["POSTGRES_PASSWORD"]
+POSTGRES_DB = config["POSTGRES_DB"]
+POSTGRES_HOST = config.get("POSTGRES_HOST", "db")
+POSTGRES_PORT = config.get("POSTGRES_PORT", "5432")
+LOG_PATH = config["LOG_PATH"]
+CONFIG_PATH = config["CONFIG_PATH"]
 
-# os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+POSTGRES_URL = (
+    f"postgresql+asyncpg://{quote_plus(POSTGRES_USER)}:{quote_plus(POSTGRES_PASSWORD)}"
+    f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+)
 
-# logging.basicConfig(
-#     level=logging.INFO,
-#     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-#     handlers=[logging.StreamHandler(), logging.FileHandler(LOG_PATH)],
-# )
+os.makedirs(os.path.dirname(LOG_PATH), exist_ok=True)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler(LOG_PATH)],
+)
 
 logger = logging.getLogger(name=__name__)
 
 logger.info("Приложение инициализируется...")
+
+#Инициализация соединения с базой данных
+engine = create_async_engine(POSTGRES_URL, echo=True)
+async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+class Base(DeclarativeBase):
+    pass
+
+async def get_async_session():
+    async with async_session_maker() as session:
+        yield session
 
 
 # ————————————————————
@@ -141,6 +164,45 @@ async def blog_block_get(block_id: int):
         logger.error(f"Ошибка при обработке маршрута блога: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+
+@app.get("/testUsers")
+async def testUsers(session: AsyncSession = Depends(get_async_session)):
+    try:
+        result = await session.execute(select(User))
+        users = result.scalars().all()
+        return users
+    except Exception as e:
+        logger.error(f"Ошибка при обработке данных: {e}", exc_info=True)
+
+@app.post("/addUserInfo")
+async def addUserTest(session: AsyncSession = Depends(get_async_session)):
+    try:
+        new_user = User(name="Вова", email="A@a.com")
+        session.add(new_user)
+        await session.commit()
+        await session.refresh(new_user)
+        return new_user
+    except Exception as e:
+        logger.error(f"Ошибка при обработке данных: {e}", exc_info=True)
+
+class ga4_sessions(Base):
+    __tablename__ = "ga4_sessions"
+
+    id: Mapped[int] = mapped_column(Integer(), primary_key=True)
+    session_id: Mapped[str] = mapped_column(String(), nullable=False)
+    event_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+def create_post(post_data: str):
+    try:
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка форматирования данных: {e}", exc_info=True)
 
 # if __name__ == "__main__":
 #     import uvicorn

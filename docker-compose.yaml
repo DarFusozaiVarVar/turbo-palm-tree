@@ -50,6 +50,7 @@ services:
       - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     ports:
       - "8080:8000"
+      - "8404:8404"
     depends_on:
       http-server-1:
       # ждём статуса healthy от обоих серверов
