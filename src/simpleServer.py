@@ -198,11 +198,137 @@ class ga4_sessions(Base):
     session_id: Mapped[str] = mapped_column(String(), nullable=False)
     event_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
-def create_post(post_data: str):
+@app.post("createPost")
+async def create_post(post_data: str):
     try:
         return True
     except Exception as e:
         logger.error(f"Ошибка форматирования данных: {e}", exc_info=True)
+
+# THe coed intended on completion of task 3
+# import base64
+import urllib.request
+import re
+
+ETCD_NODES = [
+    "http://localhost:12371",
+    "http://localhost:12372",
+    "http://localhost:12373",
+]
+
+def etcd_post(endpoint: str, payload: dict) -> dict:
+    data = json.dumps(payload).encode("utf-8")
+    last_error = None
+
+    for base_url in ETCD_NODES:
+        url = f"{base_url.rstrip('/')}/{endpoint.lstrip('/')}"
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=2.0) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8")
+            raise HTTPException(status_code=e.code, detail=error_body)
+        except Exception as e:
+            last_error = e
+            continue
+
+    raise HTTPException(
+        status_code=503,
+        detail=f"Все узлы etcd недоступны. Последняя ошибка: {last_error}",
+    )
+
+@app.get("/showNodes")
+def show_nodes():
+    return etcd_post("/v3/cluster/member/list", {})
+
+@app.post("/addNode") #still under construction need to add init via docker
+def add_node(node_name: str = "etcd-a"):
+    cluster_data = show_nodes()
+    existing_names = {
+        member.get("name")
+        for member in cluster_data.get("members", [])
+        if member.get("name")
+    }
+
+    while node_name in existing_names:
+        match = re.search(r"^(.*?\W+)(\d+)\s*$", node_name)
+        if match:
+            prefix = match.group(1)
+            number = int(match.group(2))
+            node_name = f"{prefix}{number + 1}"
+        else:
+            node_name = f"{node_name}-1"
+
+    peer_url = f"http://{node_name}:2380"
+    payload = {
+        "peerURLs": [peer_url],
+        "isLearner": True,
+    }
+    data = json.dumps(payload).encode("utf-8")
+
+    for etcd_url in ETCD_NODES:
+        try:
+            url = f"{etcd_url}/v3/cluster/member/add"
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=2.0) as response:
+                etcd_response = json.loads(response.read().decode("utf-8"))
+                return {
+                    "assigned_name": node_name,
+                    "peer_url": peer_url,
+                    "etcd_response": etcd_response,
+                }
+        except Exception as e:
+            logger.warning(f"Не удалось добавить через {etcd_url}: {e}")
+            continue
+
+    raise HTTPException(status_code=503, detail="Не удалось подключиться ни к одному узлу etcd")
+
+@app.get("/activeNodes")
+def get_active_nodes():
+    cluster_data = etcd_post("/v3/cluster/member/list", {})
+    members = cluster_data.get("members", [])
+
+    active_nodes = []
+
+    for member in members:
+        client_urls = member.get("clientURLs", [])
+        if not client_urls:
+            continue
+
+        client_url = client_urls[0]
+        try:
+            health_url = f"{client_url.rstrip('/')}/health"
+            req = urllib.request.Request(health_url, method="GET")
+            with urllib.request.urlopen(req, timeout=1.0) as response:
+                health_data = json.loads(response.read().decode("utf-8"))
+                if health_data.get("health") == "true":
+                    active_nodes.append({
+                        "id": member.get("ID"),
+                        "name": member.get("name"),
+                        "client_url": client_url,
+                        "peer_urls": member.get("peerURLs", []),
+                        "is_learner": member.get("isLearner", False),
+                    })
+        except Exception:
+            continue
+
+    return {
+        "total_registered": len(members),
+        "active_count": len(active_nodes),
+        "active_nodes": active_nodes,
+    }
+
 
 # if __name__ == "__main__":
 #     import uvicorn
