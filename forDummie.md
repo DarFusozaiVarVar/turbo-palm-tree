@@ -27,3 +27,5 @@ Maintenance database: demo_db
 Username:             admin
 Password:             [Ваш_пароль]
 
+# Docker with recreate
+docker compose up -d --force-recreate
